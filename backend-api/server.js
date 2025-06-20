@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://user:<password>@cluster0.ln4g5.mongodb.net/loxur?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://user:<password>@cluster0.ln4g5.mongodb.net/travel?retryWrites=true&w=majority&appName=Cluster0';
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
@@ -41,7 +41,7 @@ app.use('/api', publicRoutes);
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'Loxur Admin API Server is running',
+    message: 'Travel Admin API Server is running',
     timestamp: new Date().toISOString()
   });
 });
@@ -57,7 +57,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Loxur Admin API Server running on port ${PORT}`);
+  console.log(`🚀 Travel Admin API Server running on port ${PORT}`);
   console.log(`📊 Admin Dashboard: http://localhost:5173/admin`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
 });
