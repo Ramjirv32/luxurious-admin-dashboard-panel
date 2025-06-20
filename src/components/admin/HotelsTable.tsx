@@ -1,12 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Filter, MoreHorizontal, Eye, Edit, Plus } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { adminAPI } from '@/lib/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,15 +12,54 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+const API_BASE_URL = 'http://localhost:6000/api';
+
 export function HotelsTable() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [hotels, setHotels] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  const { data: hotels, isLoading } = useQuery({
-    queryKey: ['hotels', currentPage, searchTerm],
-    queryFn: () => adminAPI.getHotels({ page: currentPage, search: searchTerm, limit: itemsPerPage }),
-  });
+  const fetchHotels = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Fetching hotels...', { page: currentPage, search: searchTerm });
+      
+      const queryParams = new URLSearchParams();
+      if (currentPage) queryParams.append('page', currentPage.toString());
+      if (searchTerm) queryParams.append('search', searchTerm);
+      queryParams.append('limit', itemsPerPage.toString());
+      
+      const response = await fetch(`${API_BASE_URL}/admin/hotels?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json().catch(() => ({ error: 'Failed to parse server response' }));
+
+      if (response.ok) {
+        console.log('Hotels fetched successfully:', data);
+        setHotels(data);
+        setError(null);
+      } else {
+        throw new Error(data.error || 'Failed to fetch hotels');
+      }
+    } catch (error: any) {
+      console.error('Error fetching hotels:', error);
+      setError(error.message || 'Unknown error');
+      setHotels({ data: [], total: 0 });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHotels();
+  }, [currentPage, searchTerm]);
 
   if (isLoading) {
     return (
@@ -50,12 +87,24 @@ export function HotelsTable() {
             <CardDescription>Manage hotel properties and details</CardDescription>
           </div>
           <Button className="gap-2">
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4"/>
             Add Hotel
           </Button>
         </div>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mb-4">
+            <p className="text-sm">Error loading hotels: {error}</p>
+            <button 
+              onClick={fetchHotels}
+              className="text-sm underline hover:no-underline mt-1"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-4 mb-6">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

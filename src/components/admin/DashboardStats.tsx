@@ -3,13 +3,55 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Users, Calendar, Hotel, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { adminAPI } from '@/lib/api';
+import { useState, useEffect } from 'react';
+
+const API_BASE_URL = 'http://localhost:6000/api';
 
 export function DashboardStats() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: adminAPI.getDashboardStats,
-  });
+  const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Fetching dashboard stats...');
+      
+      const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json().catch(() => ({ error: 'Failed to parse server response' }));
+
+      if (response.ok) {
+        console.log('Dashboard stats fetched successfully:', data);
+        setStats(data);
+        setError(null);
+      } else {
+        throw new Error(data.error || 'Failed to fetch dashboard stats');
+      }
+    } catch (error: any) {
+      console.error('Error fetching dashboard stats:', error);
+      setError(error.message || 'Unknown error');
+      // Set default stats on error
+      setStats({
+        totalUsers: 0,
+        totalBookings: 0,
+        totalHotels: 0,
+        totalRevenue: 0,
+        recentActivity: []
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
 
   if (isLoading) {
     return (
@@ -59,6 +101,18 @@ export function DashboardStats() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md">
+          <p className="text-sm">Error loading dashboard stats: {error}</p>
+          <button 
+            onClick={fetchDashboardStats}
+            className="text-sm underline hover:no-underline mt-1"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsData.map((stat) => (
           <Card key={stat.title} className="hover:shadow-lg transition-shadow">
